@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Custodian Management System</title>
+
+<!-- Firebase 12.19.0 Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore-compat.js"></script>
+
+<!-- SheetJS for Excel import/export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<style>
+:root{
+  --primary:#0f4c5c;
+  --primary-2:#16697a;
+  --accent:#2a9d8f;
+  --bg:#f4f7f9;
+  --panel:#ffffff;
+  --border:#dfe6eb;
+  --text:#24313a;
+  --muted:#687783;
+  --success:#198754;
+  --warning:#d88700;
+  --danger:#c9362b;
+  --info:#2878b5;
+  --sidebar:270px;
+  --shadow:0 8px 24px rgba(27,50,61,.08);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+.nowrap{white-space:nowrap}
+
+/* LOGIN */
+#loginView{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:
+    radial-gradient(circle at 15% 10%,rgba(255,255,255,.14),transparent 32%),
+    linear-gradient(135deg,#0b3945,#176779 58%,#2a9d8f);
+}
+.login-card{
+  width:min(430px,100%);
+  background:#fff;
+  border-radius:20px;
+  padding:34px;
+  box-shadow:0 24px 70px rgba(0,0,0,.22);
+}
+.login-mark{
+  width:74px;height:74px;
+  margin:0 auto 18px;
+  border-radius:20px;
+  display:grid;
+  place-items:center;
+  background:#e4f4f1;
+  color:var(--primary);
+  font-size:32px;
+}
+.login-card h1{
+  font-size:22px;
+  text-align:center;
+  margin:0 0 8px;
+}
+.login-card .sub{
+  text-align:center;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.5;
+  margin-bottom:24px;
+}
+.login-note{
+  margin-top:14px;
+  font-size:11px;
+  color:#7b8790;
+  line-height:1.5;
+  text-align:center;
+}
+.error-box{
+  display:none;
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:8px;
+  background:#fde9e7;
+  color:#9f2920;
+  font-size:12px;
+}
+
+/* APP SHELL */
+#appView{display:none}
+.sidebar{
+  position:fixed;
+  inset:0 auto 0 0;
+  width:var(--sidebar);
+  background:#12343b;
+  color:#fff;
+  overflow-y:auto;
+  z-index:1000;
+  box-shadow:8px 0 24px rgba(12,35,41,.09);
+}
+.brand{
+  padding:22px 20px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.brand-main{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:18px;
+  font-weight:800;
+}
+.brand-sub{
+  margin-top:6px;
+  color:#a9c9cf;
+  font-size:10px;
+  line-height:1.45;
+}
+.menu{padding:12px 10px 24px}
+.menu-title{
+  padding:17px 12px 7px;
+  color:#7fa6ad;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1.25px;
+}
+.menu-item{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:11px 12px;
+  border-radius:8px;
+  color:#d2e3e6;
+  font-size:13px;
+  cursor:pointer;
+  transition:.15s;
+  user-select:none;
+}
+.menu-item i{width:19px;text-align:center}
+.menu-item:hover,.menu-item.active{
+  color:#fff;
+  background:#1b5864;
+}
+.main{margin-left:var(--sidebar);min-height:100vh}
+.topbar{
+  height:68px;
+  position:sticky;
+  top:0;
+  z-index:700;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:0 24px;
+  background:#fff;
+  border-bottom:1px solid var(--border);
+}
+.top-left{display:flex;align-items:center;gap:12px}
+.top-title{font-weight:800;font-size:16px}
+.user-box{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:#4f606b;
+  font-size:12px;
+}
+.content{padding:24px}
+.page{display:none}
+.page.active{display:block}
+.page-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  margin-bottom:18px;
+}
+.page-header h2{margin:0;font-size:23px}
+.page-header p{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+.toolbar{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  justify-content:flex-end;
+}
+
+/* FORMS */
+.form-group{margin-bottom:14px}
+label{
+  display:block;
+  margin-bottom:6px;
+  font-size:12px;
+  font-weight:700;
+  color:#374854;
+}
+input,select,textarea{
+  width:100%;
+  border:1px solid #ccd8de;
+  border-radius:8px;
+  padding:10px 11px;
+  background:#fff;
+  color:var(--text);
+  outline:none;
+}
+textarea{min-height:82px;resize:vertical}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(42,157,143,.12);
+}
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.span-2{grid-column:span 2}
+.span-all{grid-column:1/-1}
+.help{
+  font-size:11px;
+  color:#7a8892;
+  margin-top:5px;
+  line-height:1.4;
+}
+
+/* BUTTONS */
+.btn{
+  border:0;
+  border-radius:8px;
+  padding:9px 12px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font-size:12px;
+  font-weight:700;
+  transition:.15s;
+}
+.btn:hover{filter:brightness(.97)}
+.btn-primary{background:var(--primary);color:white}
+.btn-success{background:var(--success);color:white}
+.btn-danger{background:var(--danger);color:white}
+.btn-warning{background:#e39716;color:#fff}
+.btn-info{background:var(--info);color:#fff}
+.btn-light{background:#eef3f6;color:#34434c}
+.btn-outline{background:white;color:#34434c;border:1px solid #d5dfe4}
+.btn-block{width:100%}
+.icon-btn{
+  width:34px;height:34px;
+  padding:0;
+  border-radius:7px;
+}
+
+/* CARDS */
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+  margin-bottom:18px;
+}
+.card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:17px;
+  display:flex;
+  gap:13px;
+  align-items:center;
+  box-shadow:var(--shadow);
+}
+.card-icon{
+  flex:0 0 47px;
+  width:47px;height:47px;
+  border-radius:11px;
+  display:grid;
+  place-items:center;
+  background:#e7f4f2;
+  color:var(--primary);
+  font-size:19px;
+}
+.card-value{
+  font-size:22px;
+  font-weight:800;
+  line-height:1.1;
+}
+.card-label{
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.35px;
+}
+
+/* PANELS */
+.panel{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:18px;
+  box-shadow:var(--shadow);
+}
+.panel-header{
+  min-height:54px;
+  padding:13px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.panel-title{
+  font-size:14px;
+  font-weight:800;
+}
+.panel-body{padding:17px}
+
+/* STATUS / QUICK */
+.quick-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.quick{
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:16px;
+  background:#fbfcfd;
+}
+.quick h4{margin:0 0 8px;font-size:13px}
+.quick .big{font-size:24px;font-weight:800}
+.quick p{margin:6px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+
+/* TABLE */
+.table-wrap{overflow:auto}
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:11px;
+  white-space:nowrap;
+}
+th{
+  padding:10px 11px;
+  text-align:left;
+  background:#f2f6f8;
+  color:#42535d;
+  border-bottom:1px solid #dce5e9;
+  font-weight:800;
+}
+td{
+  padding:10px 11px;
+  border-bottom:1px solid #edf1f3;
+  vertical-align:middle;
+}
+tbody tr:hover td{background:#fbfdfe}
+.empty{
+  text-align:center;
+  padding:30px!important;
+  color:#88949c;
+}
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:30px;
+  font-size:9px;
+  font-weight:800;
+}
+.badge.good{background:#def5e9;color:#176c47}
+.badge.warn{background:#fff1d9;color:#8a5c00}
+.badge.bad{background:#fde6e4;color:#a62f27}
+.badge.info{background:#e3f0fa;color:#266389}
+.row-actions{display:flex;gap:5px}
+
+/* FILTERS */
+.filters{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+}
+.filters input,.filters select{
+  width:auto;
+  min-width:150px;
+  padding:8px 10px;
+  font-size:11px;
+}
+
+/* MODAL */
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:3000;
+  background:rgba(11,28,35,.56);
+  padding:20px;
+  align-items:center;
+  justify-content:center;
+}
+.modal.show{display:flex}
+.modal-box{
+  width:min(980px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 25px 80px rgba(0,0,0,.25);
+}
+.modal-box.small{width:min(540px,100%)}
+.modal-head{
+  position:sticky;
+  top:0;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:16px 18px;
+  background:#fff;
+  border-bottom:1px solid var(--border);
+}
+.modal-title{font-size:15px;font-weight:800}
+.modal-close{
+  border:0;
+  background:#eef3f5;
+  width:32px;height:32px;
+  border-radius:8px;
+}
+.modal-body{padding:18px}
+.modal-foot{
+  position:sticky;
+  bottom:0;
+  z-index:2;
+  background:#fff;
+  border-top:1px solid var(--border);
+  padding:13px 18px;
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+/* REFERENCE */
+.reference{
+  border-left:4px solid var(--accent);
+  padding:14px 15px;
+  background:#f6fbfa;
+  margin-bottom:12px;
+  border-radius:0 9px 9px 0;
+}
+.reference h4{margin:0 0 6px;font-size:13px}
+.reference p{margin:0;color:#566771;font-size:11px;line-height:1.55}
+
+/* TOAST */
+#toast{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:5000;
+  min-width:240px;
+  max-width:380px;
+  display:none;
+  padding:12px 14px;
+  border-radius:9px;
+  background:#163b45;
+  color:#fff;
+  font-size:12px;
+  box-shadow:0 16px 40px rgba(0,0,0,.2);
+}
+#toast.show{display:block}
+
+/* RESPONSIVE */
+.mobile-menu{display:none}
+@media(max-width:1150px){
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:780px){
+  .sidebar{
+    transform:translateX(-100%);
+    transition:.22s;
+  }
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0}
+  .mobile-menu{display:inline-flex}
+  .content{padding:15px}
+  .page-header{flex-direction:column}
+  .toolbar{justify-content:flex-start}
+  .cards,.quick-grid,.form-grid{grid-template-columns:1fr}
+  .span-2,.span-all{grid-column:auto}
+  .topbar{padding:0 14px}
+  .user-box span{display:none}
+}
+@media print{
+  .sidebar,.topbar,.no-print,.modal,#toast{display:none!important}
+  .main{margin:0}
+  .content{padding:0}
+  .page{display:none!important}
+  .page.active{display:block!important}
+  .panel,.card{box-shadow:none;border:1px solid #ccc}
+  body{background:#fff}
+}
+</style>
+</head>
+
+<body>
+
+<div id="loginView">
+  <div class="login-card">
+    <div class="login-mark"><i class="fa-solid fa-boxes-stacked"></i></div>
+    <h1>Property Custodian Management System</h1>
+    <div class="sub">Inventory • Accountability • Acquisition • Physical Count • Maintenance • Disposal</div>
+
+    <div class="form-group">
+      <label>Email address</label>
+      <input id="loginEmail" type="email" autocomplete="username" placeholder="propertycustodian@example.gov.ph">
+    </div>
+
+    <div class="form-group">
+      <label>Password</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Enter password">
+    </div>
+
+    <button class="btn btn-primary btn-block" id="loginBtn">
+      <i class="fa-solid fa-right-to-bracket"></i> Sign In
+    </button>
+
+    <div id="loginError" class="error-box"></div>
+    <div class="login-note">
+      Accounts are managed through Firebase Authentication.
+    </div>
+  </div>
+</div>
+
+<div id="appView">
+
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <div class="brand-main"><i class="fa-solid fa-cubes-stacked"></i> PCMS</div>
+    <div class="brand-sub">PROPERTY CUSTODIAN MANAGEMENT SYSTEM</div>
+  </div>
+
+  <div class="menu">
+    <div class="menu-title">OVERVIEW</div>
+    <div class="menu-item active" data-page="dashboard"><i class="fa-solid fa-chart-pie"></i> Dashboard</div>
+
+    <div class="menu-title">PROPERTY MANAGEMENT</div>
+    <div class="menu-item" data-page="inventory"><i class="fa-solid fa-boxes-stacked"></i> Property Inventory</div>
+    <div class="menu-item" data-page="acquisition"><i class="fa-solid fa-cart-flatbed"></i> Acquisition</div>
+    <div class="menu-item" data-page="issuance"><i class="fa-solid fa-user-check"></i> Issuance / Accountability</div>
+    <div class="menu-item" data-page="transfer"><i class="fa-solid fa-right-left"></i> Property Transfer</div>
+    <div class="menu-item" data-page="physical"><i class="fa-solid fa-clipboard-check"></i> Physical Inventory</div>
+    <div class="menu-item" data-page="maintenance"><i class="fa-solid fa-screwdriver-wrench"></i> Repair / Maintenance</div>
+
+    <div class="menu-title">DISPOSAL</div>
+    <div class="menu-item" data-page="disposal"><i class="fa-solid fa-recycle"></i> Disposal Management</div>
+
+    <div class="menu-title">REPORTS & CONTROL</div>
+    <div class="menu-item" data-page="reports"><i class="fa-solid fa-file-export"></i> Reports</div>
+    <div class="menu-item" data-page="audit"><i class="fa-solid fa-clock-rotate-left"></i> Audit Trail</div>
+    <div class="menu-item" data-page="references"><i class="fa-solid fa-scale-balanced"></i> Rules & References</div>
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div class="top-left">
+      <button class="btn btn-light mobile-menu" id="mobileMenuBtn"><i class="fa-solid fa-bars"></i></button>
+      <div class="top-title" id="pageTitle">Dashboard</div>
+    </div>
+    <div class="user-box">
+      <i class="fa-solid fa-circle-user"></i>
+      <span id="currentUserEmail"></span>
+      <button class="btn btn-light" id="logoutBtn"><i class="fa-solid fa-arrow-right-from-bracket"></i> Logout</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <section class="page active" id="dashboard">
+      <div class="page-header">
+        <div>
+          <h2>Property Dashboard</h2>
+          <p>Real-time summary of property records and accountability status.</p>
+        </div>
+        <div class="toolbar no-print">
+          <button class="btn btn-light" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Dashboard</button>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+          <div><div class="card-value" id="totalProperty">0</div><div class="card-label">TOTAL PROPERTY RECORDS</div></div>
+        </div>
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-peso-sign"></i></div>
+          <div><div class="card-value" id="totalValue">₱0.00</div><div class="card-label">TOTAL ACQUISITION COST</div></div>
+        </div>
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-user-check"></i></div>
+          <div><div class="card-value" id="issuedCount">0</div><div class="card-label">ISSUED / ACCOUNTABLE</div></div>
+        </div>
+        <div class="card">
+          <div class="card-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div><div class="card-value" id="unserviceableCount">0</div><div class="card-label">UNSERVICEABLE</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Current Property Status</div></div>
+        <div class="panel-body">
+          <div class="quick-grid">
+            <div class="quick"><h4>Serviceable</h4><div class="big" id="serviceableCount">0</div><p>Records currently tagged serviceable, good, or available.</p></div>
+            <div class="quick"><h4>For Repair</h4><div class="big" id="repairCount">0</div><p>Property requiring inspection, repair, or maintenance action.</p></div>
+            <div class="quick"><h4>For Disposal</h4><div class="big" id="forDisposalCount">0</div><p>Property already tagged for disposal processing.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Disposal Pipeline</div></div>
+        <div class="panel-body">
+          <div class="quick-grid">
+            <div class="quick"><h4>Pending</h4><div class="big" id="pendingDisposalCount">0</div><p>Disposal records not yet completed.</p></div>
+            <div class="quick"><h4>For Appraisal</h4><div class="big" id="appraisalCount">0</div><p>Items currently recorded for appraisal.</p></div>
+            <div class="quick"><h4>Disposed</h4><div class="big" id="disposedCount">0</div><p>Completed disposal records.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVENTORY -->
+    <section class="page" id="inventory">
+      <div class="page-header">
+        <div>
+          <h2>Property Inventory</h2>
+          <p>Master registry of property, equipment, and applicable semi-expendable items.</p>
+        </div>
+        <div class="toolbar no-print">
+          <input type="file" id="inventoryFile" accept=".xlsx,.xls,.xlsm" class="hidden">
+          <button class="btn btn-outline" id="importInventoryBtn"><i class="fa-solid fa-file-import"></i> Import Excel</button>
+          <button class="btn btn-success" id="exportInventoryBtn"><i class="fa-solid fa-file-excel"></i> Export Excel</button>
+          <button class="btn btn-light" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+          <button class="btn btn-primary" id="addPropertyBtn"><i class="fa-solid fa-plus"></i> Add Property</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Master Property Registry</div>
+          <div class="filters no-print">
+            <input id="inventorySearch" placeholder="Search property...">
+            <select id="inventoryStatusFilter">
+              <option value="">All Status</option>
+              <option>Available</option><option>Issued</option><option>Transferred</option>
+              <option>For Repair</option><option>For Disposal</option><option>Disposed</option><option>Lost</option>
+            </select>
+            <select id="inventoryConditionFilter">
+              <option value="">All Conditions</option>
+              <option>Serviceable</option><option>Good</option><option>Fair</option>
+              <option>For Repair</option><option>Unserviceable</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Property No.</th><th>Description</th><th>Category</th><th>Brand/Model</th>
+                <th>Serial No.</th><th>Date Acquired</th><th>Acquisition Cost</th>
+                <th>Accountable Person</th><th>Office</th><th>Location</th>
+                <th>PAR/ICS</th><th>Condition</th><th>Status</th><th>Remarks</th>
+                <th class="no-print">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="inventoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACQUISITION -->
+    <section class="page" id="acquisition">
+      <div class="page-header">
+        <div>
+          <h2>Acquisition</h2>
+          <p>Track property acquired through procurement, donation, transfer, construction, or other authorized sources.</p>
+        </div>
+        <div class="toolbar no-print">
+          <button class="btn btn-success" onclick="exportDataset('acquisitions','Acquisition_Register')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button class="btn btn-light" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+          <button class="btn btn-primary" id="addAcquisitionBtn"><i class="fa-solid fa-plus"></i> New Acquisition</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Reference</th><th>Supplier / Source</th><th>Mode</th><th>Description</th><th>Quantity</th><th>Amount</th><th>Status</th><th>Remarks</th><th class="no-print">Actions</th></tr>
+            </thead>
+            <tbody id="acquisitionBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ISSUANCE -->
+    <section class="page" id="issuance">
+      <div class="page-header">
+        <div>
+          <h2>Issuance / Accountability</h2>
+          <p>Monitor PAR, ICS, returns, and accountable personnel.</p>
+        </div>
+        <div class="toolbar no-print">
+          <button class="btn btn-success" onclick="exportDataset('issuances','Accountability_Register')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button class="btn btn-light" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+          <button class="btn btn-primary" id="addIssuanceBtn"><i class="fa-solid fa-plus"></i> Issue Property</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>PAR/ICS No.</th><th>Property No.</th><th>Property</th><th>Accountable Person</th><th>Office</th><th>Type</th><th>Status</th><th>Remarks</th><th class="no-print">Actions</th></tr>
+            </thead>
+            <tbody id="issuanceBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRANSFER -->
+    <section class="page" id="transfer">
+      <div class="page-header">
+        <div>
+          <h2>Property Transfer</h2>
+          <p>Record movement between accountable persons, offices, or locations.</p>
+        </div>
+        <div class="toolbar no-print">
+          <button class="btn btn-success" onclick="exportDataset('transfers','Property_Transfer_Register')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button class="btn btn-light" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+          <button class="btn btn-primary" id="addTransferBtn"><i class="fa-solid fa-right-left"></i> Record Transfer</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>PTR No.</th><th>Property No.</th><th>Description</th><th>From</th><th>To</th><th>New Office</th><th>New Location</th><th>Reason</th><th class="no-print">Actions</th></tr>
+            </thead>
+            <tbody id="transferBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PHYSICAL INVENTORY -->
+    <section class="page" id="physical">
+      <div class="page-header">
+        <div>
+          <h2>Physical Inventory</h2>
+          <p>Record physical count results, actual location, condition, and discrepancies.</p>
+        </div>
+        <div class="toolbar no-print">
+          <button class="btn btn-success" onclick="exportDataset('physicalInventory','Physical_Inventory')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button class="btn btn-light" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+          <button class="btn btn-primary" id="addPhysicalBtn"><i class="fa-solid fa-clipboard-check"></i> Record Count</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Property No.</th><th>Description</th><th>Recorded Location</th><th>Actual Location</th><th>Condition</th><th>Result</th><th>Remarks</th><th class="no-print">Actions</th></tr>
+            </thead>
+            <tbody id="physicalBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAINTENANCE -->
+    <section class="page" id="maintenance">
+      <div class="page-header">
+        <div>
+          <h2>Repair / Maintenance</h2>
+          <p>Maintain a repair and maintenance history for each property item.</p>
+        </div>
+        <div class="toolbar no-print">
+          <button class="btn btn-success" onclick="exportDataset('maintenance','Maintenance_Register')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button class="btn btn-light" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+          <button class="btn btn-primary" id="addMaintenanceBtn"><i class="fa-solid fa-plus"></i> Add Record</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>Property No.</th><th>Description</th><th>Problem / Defect</th><th>Action Taken</th><th>Repair Cost</th><th>Status</th><th>Remarks</th><th class="no-print">Actions</th></tr>
+            </thead>
+            <tbody id="maintenanceBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- DISPOSAL -->
+    <section class="page" id="disposal">
+      <div class="page-header">
+        <div>
+          <h2>Disposal Management</h2>
+          <p>Track inspection, appraisal, approval, and final disposal of property.</p>
+        </div>
+        <div class="toolbar no-print">
+          <button class="btn btn-success" onclick="exportDataset('disposals','Disposal_Register')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+          <button class="btn btn-light" onclick="window.print()"><i class="fa-solid fa-print"></i> Print</button>
+          <button class="btn btn-primary" id="addDisposalBtn"><i class="fa-solid fa-recycle"></i> Add Disposal Record</button>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card"><div class="card-icon"><i class="fa-solid fa-hourglass-half"></i></div><div><div class="card-value" id="pendingDisposalCard">0</div><div class="card-label">PENDING DISPOSAL</div></div></div>
+        <div class="card"><div class="card-icon"><i class="fa-solid fa-magnifying-glass-dollar"></i></div><div><div class="card-value" id="appraisalCard">0</div><div class="card-label">FOR APPRAISAL</div></div></div>
+        <div class="card"><div class="card-icon"><i class="fa-solid fa-check-double"></i></div><div><div class="card-value" id="disposedCard">0</div><div class="card-label">DISPOSED</div></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Date</th><th>IIRUP No.</th><th>Property No.</th><th>Description</th><th>Condition</th><th>Appraised Value</th><th>Mode</th><th>Status</th><th>Remarks</th><th class="no-print">Actions</th></tr>
+            </thead>
+            <tbody id="disposalBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- REPORTS -->
+    <section class="page" id="reports">
+      <div class="page-header">
+        <div>
+          <h2>Reports</h2>
+          <p>Export the main registries to Excel for reconciliation and reporting.</p>
+        </div>
+      </div>
+      <div class="quick-grid">
+        <div class="quick"><h4>Property Inventory</h4><p>Master property listing including cost, accountability, condition, and status.</p><br><button class="btn btn-primary" onclick="exportInventory()"><i class="fa-solid fa-file-excel"></i> Export</button></div>
+        <div class="quick"><h4>Acquisition Register</h4><p>Acquisition sources, quantities, amounts, and processing status.</p><br><button class="btn btn-primary" onclick="exportDataset('acquisitions','Acquisition_Register')"><i class="fa-solid fa-file-excel"></i> Export</button></div>
+        <div class="quick"><h4>Accountability Register</h4><p>PAR/ICS issuance records and accountable personnel.</p><br><button class="btn btn-primary" onclick="exportDataset('issuances','Accountability_Register')"><i class="fa-solid fa-file-excel"></i> Export</button></div>
+        <div class="quick"><h4>Physical Inventory</h4><p>Physical count, condition, location, and discrepancy results.</p><br><button class="btn btn-primary" onclick="exportDataset('physicalInventory','Physical_Inventory')"><i class="fa-solid fa-file-excel"></i> Export</button></div>
+        <div class="quick"><h4>Maintenance Register</h4><p>Repair history, defects, actions taken, and costs.</p><br><button class="btn btn-primary" onclick="exportDataset('maintenance','Maintenance_Register')"><i class="fa-solid fa-file-excel"></i> Export</button></div>
+        <div class="quick"><h4>Disposal Register</h4><p>IIRUP reference, appraisal, disposal mode, and final status.</p><br><button class="btn btn-primary" onclick="exportDataset('disposals','Disposal_Register')"><i class="fa-solid fa-file-excel"></i> Export</button></div>
+      </div>
+    </section>
+
+    <!-- AUDIT -->
+    <section class="page" id="audit">
+      <div class="page-header">
+        <div>
+          <h2>Audit Trail</h2>
+          <p>System-generated record of major create, update, delete, issue, transfer, and disposal actions.</p>
+        </div>
+        <div class="toolbar no-print">
+          <button class="btn btn-success" onclick="exportDataset('auditLogs','Audit_Trail')"><i class="fa-solid fa-file-excel"></i> Excel</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date / Time</th><th>User</th><th>Action</th><th>Module</th><th>Reference</th></tr></thead>
+            <tbody id="auditBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- REFERENCES -->
+    <section class="page" id="references">
+      <div class="page-header">
+        <div>
+          <h2>Rules & References</h2>
+          <p>Reference notes for property management workflows. Always use the latest official agency-prescribed forms and issuances.</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <div class="reference">
+            <h4>Republic Act No. 12009 — New Government Procurement Act</h4>
+            <p>Use for the current government procurement framework together with the official implementing rules, applicable GPPB resolutions, standard forms, and agency procedures.</p>
+          </div>
+          <div class="reference">
+            <h4>COA-DBM Joint Circular No. 2024-1 — Revised Manual on the Disposal of Government Properties</h4>
+            <p>Use as a key reference for inspection, appraisal, authorization, modes of disposal, documentation, and disposal proceedings.</p>
+          </div>
+          <div class="reference">
+            <h4>Property Acknowledgment Receipt (PAR)</h4>
+            <p>Use the official form and agency rules applicable to property accountability for Property, Plant and Equipment.</p>
+          </div>
+          <div class="reference">
+            <h4>Inventory Custodian Slip (ICS)</h4>
+            <p>Use the official form and agency rules applicable to semi-expendable property accountability.</p>
+          </div>
+          <div class="reference">
+            <h4>Report on Physical Count / Inventory Reports</h4>
+            <p>Physical count results should be reconciled with property and accounting records, with discrepancies investigated and documented.</p>
+          </div>
+          <div class="reference">
+            <h4>Inventory and Inspection Report of Unserviceable Property (IIRUP)</h4>
+            <p>Record inspection and unserviceable-property information supporting the disposal process.</p>
+          </div>
+          <div class="reference">
+            <h4>Waste Materials Report (WMR)</h4>
+            <p>Use when applicable for waste materials, replaced parts, scrap, or other transactions requiring the prescribed report.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</main>
+</div>
+
+<!-- PROPERTY MODAL -->
+<div class="modal" id="propertyModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="propertyModalTitle">Add Property</div>
+      <button class="modal-close" onclick="closeModal('propertyModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="propertyId">
+      <div class="form-grid">
+        <div><label>Property Number *</label><input id="propertyNo" placeholder="e.g. 2026-ICT-0001"></div>
+        <div class="span-2"><label>Description *</label><input id="propertyDescription" placeholder="Complete property description"></div>
+
+        <div>
+          <label>Classification</label>
+          <select id="propertyClassification">
+            <option>Property, Plant and Equipment (PPE)</option>
+            <option>Semi-Expendable Property</option>
+            <option>Other Property</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Category</label>
+          <select id="propertyCategory">
+            <option>ICT Equipment</option>
+            <option>Office Equipment</option>
+            <option>Furniture and Fixtures</option>
+            <option>Machinery and Equipment</option>
+            <option>Communication Equipment</option>
+            <option>Technical / Scientific Equipment</option>
+            <option>Motor Vehicle</option>
+            <option>Building / Structure</option>
+            <option>Other PPE</option>
+            <option>Semi-Expendable ICT Equipment</option>
+            <option>Semi-Expendable Office Equipment</option>
+            <option>Other Semi-Expendable Property</option>
+          </select>
+        </div>
+
+        <div><label>Brand / Model</label><input id="propertyBrand"></div>
+        <div><label>Serial Number</label><input id="propertySerial"></div>
+        <div><label>Date Acquired</label><input id="propertyDate" type="date"></div>
+        <div><label>Acquisition Cost</label><input id="propertyCost" type="number" min="0" step="0.01"></div>
+        <div><label>Supplier / Source</label><input id="propertySupplier"></div>
+        <div><label>PO / Acquisition Reference</label><input id="propertyReference"></div>
+        <div><label>Accountable Person</label><input id="propertyAccountable"></div>
+        <div><label>Office / Unit</label><input id="propertyOffice"></div>
+        <div><label>Location</label><input id="propertyLocation"></div>
+        <div><label>PAR / ICS Number</label><input id="propertyPAR"></div>
+
+        <div>
+          <label>Condition</label>
+          <select id="propertyCondition">
+            <option>Serviceable</option><option>Good</option><option>Fair</option>
+            <option>For Repair</option><option>Unserviceable</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Status</label>
+          <select id="propertyStatus">
+            <option>Available</option><option>Issued</option><option>Transferred</option>
+            <option>For Repair</option><option>For Disposal</option><option>Disposed</option><option>Lost</option>
+          </select>
+        </div>
+
+        <div class="span-all"><label>Remarks</label><textarea id="propertyRemarks"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-light" onclick="closeModal('propertyModal')">Cancel</button>
+      <button class="btn btn-primary" id="savePropertyBtn"><i class="fa-solid fa-floppy-disk"></i> Save Property</button>
+    </div>
+  </div>
+</div>
+
+<!-- GENERIC MODAL -->
+<div class="modal" id="genericModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="genericModalTitle">Record</div>
+      <button class="modal-close" onclick="closeModal('genericModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body" id="genericModalBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-light" onclick="closeModal('genericModal')">Cancel</button>
+      <button class="btn btn-primary" id="genericSaveBtn"><i class="fa-solid fa-floppy-disk"></i> Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   FIREBASE CONFIGURATION
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyDGyVkbrYEYRBTLH1ASeJlvpV8BPyKfDA0",
+  authDomain: "pcms-9f3ac.firebaseapp.com",
+  projectId: "pcms-9f3ac",
+  storageBucket: "pcms-9f3ac.firebasestorage.app",
+  messagingSenderId: "514047720505",
+  appId: "1:514047720505:web:5624a6f3cb1f3c1e7761e8",
+  measurementId: "G-V907NQ3MSS"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const state = {
+  properties: [],
+  acquisitions: [],
+  issuances: [],
+  transfers: [],
+  physicalInventory: [],
+  maintenance: [],
+  disposals: [],
+  auditLogs: []
+};
+
+const titles = {
+  dashboard:"Dashboard",
+  inventory:"Property Inventory",
+  acquisition:"Acquisition",
+  issuance:"Issuance / Accountability",
+  transfer:"Property Transfer",
+  physical:"Physical Inventory",
+  maintenance:"Repair / Maintenance",
+  disposal:"Disposal Management",
+  reports:"Reports",
+  audit:"Audit Trail",
+  references:"Rules & References"
+};
+
+let unsubscribers = [];
+let currentGeneric = {type:null,id:null};
+
+/* =========================================================
+   DOM HELPERS
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const qsa = sel => Array.from(document.querySelectorAll(sel));
+
+function safe(value){
+  if(value === undefined || value === null) return "";
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function money(value){
+  return new Intl.NumberFormat("en-PH",{
+    style:"currency",
+    currency:"PHP"
+  }).format(Number(value || 0));
+}
+
+function today(){
+  return new Date().toISOString().slice(0,10);
+}
+
+function badgeClass(value){
+  const v = String(value || "").toLowerCase();
+  if(["disposed","unserviceable","lost"].some(x=>v.includes(x))) return "bad";
+  if(["repair","disposal","appraisal","approval","pending","ongoing"].some(x=>v.includes(x))) return "warn";
+  if(["available","serviceable","good","issued","verified","completed","accepted","recorded","returned"].some(x=>v.includes(x))) return "good";
+  return "info";
+}
+
+function toast(message){
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>el.classList.remove("show"),2600);
+}
+
+function showError(message){
+  alert(message);
+}
+
+function closeModal(id){
+  $(id).classList.remove("show");
+}
+window.closeModal = closeModal;
+
+/* =========================================================
+   AUTHENTICATION
+   ========================================================= */
+$("loginBtn").addEventListener("click", login);
+$("loginPassword").addEventListener("keydown", e=>{
+  if(e.key === "Enter") login();
+});
+$("logoutBtn").addEventListener("click", ()=>auth.signOut());
+
+async function login(){
+  const email = $("loginEmail").value.trim();
+  const password = $("loginPassword").value;
+  const error = $("loginError");
+  error.style.display = "none";
+  error.textContent = "";
+
+  if(!email || !password){
+    error.textContent = "Enter your email address and password.";
+    error.style.display = "block";
+    return;
+  }
+
+  $("loginBtn").disabled = true;
+  try{
+    await auth.signInWithEmailAndPassword(email,password);
+  }catch(err){
+    error.textContent = err.message;
+    error.style.display = "block";
+  }finally{
+    $("loginBtn").disabled = false;
+  }
+}
+
+auth.onAuthStateChanged(user=>{
+  if(user){
+    $("loginView").style.display = "none";
+    $("appView").style.display = "block";
+    $("currentUserEmail").textContent = user.email || "";
+    startRealtimeListeners();
+  }else{
+    stopRealtimeListeners();
+    $("loginView").style.display = "flex";
+    $("appView").style.display = "none";
+  }
+});
+
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
+qsa(".menu-item").forEach(item=>{
+  item.addEventListener("click",()=>{
+    const page = item.dataset.page;
+    qsa(".page").forEach(p=>p.classList.remove("active"));
+    qsa(".menu-item").forEach(m=>m.classList.remove("active"));
+    $(page).classList.add("active");
+    item.classList.add("active");
+    $("pageTitle").textContent = titles[page] || page;
+    $("sidebar").classList.remove("open");
+  });
+});
+
+$("mobileMenuBtn").addEventListener("click",()=>{
+  $("sidebar").classList.toggle("open");
+});
+
+/* =========================================================
+   FIRESTORE LISTENERS
+   ========================================================= */
+function stopRealtimeListeners(){
+  unsubscribers.forEach(fn=>{
+    try{ fn(); }catch(e){}
+  });
+  unsubscribers = [];
+}
+
+function startRealtimeListeners(){
+  stopRealtimeListeners();
+
+  const collections = [
+    ["properties","properties"],
+    ["acquisitions","acquisitions"],
+    ["issuances","issuances"],
+    ["transfers","transfers"],
+    ["physicalInventory","physicalInventory"],
+    ["maintenance","maintenance"],
+    ["disposals","disposals"],
+    ["auditLogs","auditLogs"]
+  ];
+
+  collections.forEach(([collection,key])=>{
+    const unsub = db.collection(collection)
+      .orderBy("createdAt","desc")
+      .onSnapshot(snapshot=>{
+        state[key] = snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
+        renderAll();
+      }, async error=>{
+        console.warn(collection,error);
+        // Fallback for old imported records without createdAt.
+        try{
+          const snap = await db.collection(collection).get();
+          state[key] = snap.docs.map(doc=>({id:doc.id,...doc.data()}));
+          renderAll();
+        }catch(e){
+          console.error(e);
+        }
+      });
+    unsubscribers.push(unsub);
+  });
+}
+
+async function logAction(action,module,reference){
+  try{
+    await db.collection("auditLogs").add({
+      eventTime:new Date().toLocaleString("en-PH"),
+      user:auth.currentUser?.email || "",
+      action,
+      module,
+      reference:reference || "",
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(err){
+    console.error("Audit log error",err);
+  }
+}
+
+/* =========================================================
+   PROPERTY MASTER
+   ========================================================= */
+$("addPropertyBtn").addEventListener("click",()=>openProperty());
+$("savePropertyBtn").addEventListener("click",saveProperty);
+$("inventorySearch").addEventListener("input",renderInventory);
+$("inventoryStatusFilter").addEventListener("change",renderInventory);
+$("inventoryConditionFilter").addEventListener("change",renderInventory);
+
+function clearPropertyForm(){
+  $("propertyId").value = "";
+  $("propertyNo").value = "";
+  $("propertyDescription").value = "";
+  $("propertyClassification").value = "Property, Plant and Equipment (PPE)";
+  $("propertyCategory").selectedIndex = 0;
+  $("propertyBrand").value = "";
+  $("propertySerial").value = "";
+  $("propertyDate").value = today();
+  $("propertyCost").value = "";
+  $("propertySupplier").value = "";
+  $("propertyReference").value = "";
+  $("propertyAccountable").value = "";
+  $("propertyOffice").value = "";
+  $("propertyLocation").value = "";
+  $("propertyPAR").value = "";
+  $("propertyCondition").value = "Serviceable";
+  $("propertyStatus").value = "Available";
+  $("propertyRemarks").value = "";
+}
+
+function openProperty(id=null){
+  clearPropertyForm();
+  $("propertyModalTitle").textContent = id ? "Edit Property" : "Add Property";
+
+  if(id){
+    const p = state.properties.find(x=>x.id===id);
+    if(!p) return;
+    $("propertyId").value = p.id;
+    $("propertyNo").value = p.propertyNo || "";
+    $("propertyDescription").value = p.description || "";
+    $("propertyClassification").value = p.classification || "Property, Plant and Equipment (PPE)";
+    $("propertyCategory").value = p.category || $("propertyCategory").options[0].value;
+    $("propertyBrand").value = p.brand || "";
+    $("propertySerial").value = p.serial || "";
+    $("propertyDate").value = p.dateAcquired || "";
+    $("propertyCost").value = p.cost ?? "";
+    $("propertySupplier").value = p.supplier || "";
+    $("propertyReference").value = p.reference || "";
+    $("propertyAccountable").value = p.accountable || "";
+    $("propertyOffice").value = p.office || "";
+    $("propertyLocation").value = p.location || "";
+    $("propertyPAR").value = p.parIcs || "";
+    $("propertyCondition").value = p.condition || "Serviceable";
+    $("propertyStatus").value = p.status || "Available";
+    $("propertyRemarks").value = p.remarks || "";
+  }
+
+  $("propertyModal").classList.add("show");
+}
+window.openProperty = openProperty;
+
+async function saveProperty(){
+  const id = $("propertyId").value;
+  const data = {
+    propertyNo:$("propertyNo").value.trim(),
+    description:$("propertyDescription").value.trim(),
+    classification:$("propertyClassification").value,
+    category:$("propertyCategory").value,
+    brand:$("propertyBrand").value.trim(),
+    serial:$("propertySerial").value.trim(),
+    dateAcquired:$("propertyDate").value,
+    cost:Number($("propertyCost").value || 0),
+    supplier:$("propertySupplier").value.trim(),
+    reference:$("propertyReference").value.trim(),
+    accountable:$("propertyAccountable").value.trim(),
+    office:$("propertyOffice").value.trim(),
+    location:$("propertyLocation").value.trim(),
+    parIcs:$("propertyPAR").value.trim(),
+    condition:$("propertyCondition").value,
+    status:$("propertyStatus").value,
+    remarks:$("propertyRemarks").value.trim(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  if(!data.propertyNo || !data.description){
+    showError("Property Number and Description are required.");
+    return;
+  }
+
+  const duplicate = state.properties.find(p=>p.propertyNo.toLowerCase()===data.propertyNo.toLowerCase() && p.id!==id);
+  if(duplicate){
+    showError("That Property Number already exists.");
+    return;
+  }
+
+  $("savePropertyBtn").disabled = true;
+  try{
+    if(id){
+      await db.collection("properties").doc(id).update(data);
+      await logAction("Updated property","Inventory",data.propertyNo);
+      toast("Property updated.");
+    }else{
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection("properties").add(data);
+      await logAction("Added property","Inventory",data.propertyNo);
+      toast("Property added.");
+    }
+    closeModal("propertyModal");
+  }catch(err){
+    showError(err.message);
+  }finally{
+    $("savePropertyBtn").disabled = false;
+  }
+}
+
+async function deleteProperty(id){
+  const p = state.properties.find(x=>x.id===id);
+  if(!p) return;
+  if(!confirm(`Delete property ${p.propertyNo}? This does not delete its historical transaction records.`)) return;
+  try{
+    await db.collection("properties").doc(id).delete();
+    await logAction("Deleted property","Inventory",p.propertyNo);
+    toast("Property deleted.");
+  }catch(err){ showError(err.message); }
+}
+window.deleteProperty = deleteProperty;
+
+/* =========================================================
+   GENERIC MODAL HELPERS
+   ========================================================= */
+function propertyOptions(selected=""){
+  if(!state.properties.length){
+    return `<option value="">No property records available</option>`;
+  }
+  return state.properties.map(p=>
+    `<option value="${safe(p.propertyNo)}" ${p.propertyNo===selected?"selected":""}>${safe(p.propertyNo)} — ${safe(p.description)}</option>`
+  ).join("");
+}
+
+function openGeneric(type,title,html,id=null){
+  currentGeneric = {type,id};
+  $("genericModalTitle").textContent = title;
+  $("genericModalBody").innerHTML = html;
+  $("genericModal").classList.add("show");
+}
+
+/* =========================================================
+   ACQUISITION
+   ========================================================= */
+$("addAcquisitionBtn").addEventListener("click",()=>openAcquisition());
+
+function openAcquisition(id=null){
+  const x = id ? state.acquisitions.find(r=>r.id===id) : null;
+  openGeneric("acquisition",id?"Edit Acquisition":"New Acquisition",`
+    <div class="form-grid">
+      <div><label>Date</label><input id="gDate" type="date" value="${safe(x?.date || today())}"></div>
+      <div><label>Reference / PO No.</label><input id="gReference" value="${safe(x?.reference || "")}"></div>
+      <div><label>Supplier / Source</label><input id="gSupplier" value="${safe(x?.supplier || "")}"></div>
+      <div>
+        <label>Acquisition Mode</label>
+        <select id="gMode">
+          ${["Procurement","Donation","Transfer","Construction","Other Authorized Source"].map(v=>`<option ${x?.mode===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div class="span-2"><label>Description</label><input id="gDescription" value="${safe(x?.description || "")}"></div>
+      <div><label>Quantity</label><input id="gQuantity" type="number" min="0" value="${safe(x?.quantity ?? 1)}"></div>
+      <div><label>Amount</label><input id="gAmount" type="number" min="0" step="0.01" value="${safe(x?.amount ?? "")}"></div>
+      <div>
+        <label>Status</label>
+        <select id="gStatus">
+          ${["Planned","Procurement Ongoing","Delivered","Inspected","Accepted","Recorded"].map(v=>`<option ${x?.status===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div class="span-all"><label>Remarks</label><textarea id="gRemarks">${safe(x?.remarks || "")}</textarea></div>
+    </div>
+  `,id);
+}
+window.openAcquisition = openAcquisition;
+
+async function saveAcquisition(){
+  const id = currentGeneric.id;
+  const data = {
+    date:$("gDate").value,
+    reference:$("gReference").value.trim(),
+    supplier:$("gSupplier").value.trim(),
+    mode:$("gMode").value,
+    description:$("gDescription").value.trim(),
+    quantity:Number($("gQuantity").value || 0),
+    amount:Number($("gAmount").value || 0),
+    status:$("gStatus").value,
+    remarks:$("gRemarks").value.trim(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await saveGenericDoc("acquisitions",id,data,"Acquisition",data.reference || data.description);
+}
+
+/* =========================================================
+   ISSUANCE
+   ========================================================= */
+$("addIssuanceBtn").addEventListener("click",()=>openIssuance());
+
+function openIssuance(id=null){
+  const x = id ? state.issuances.find(r=>r.id===id) : null;
+  openGeneric("issuance",id?"Edit Accountability Record":"Issue Property",`
+    <div class="form-grid">
+      <div><label>Date</label><input id="gDate" type="date" value="${safe(x?.date || today())}"></div>
+      <div><label>PAR / ICS Number</label><input id="gReference" value="${safe(x?.reference || "")}"></div>
+      <div><label>Property</label><select id="gPropertyNo">${propertyOptions(x?.propertyNo || "")}</select></div>
+      <div><label>Accountable Person</label><input id="gPerson" value="${safe(x?.person || "")}"></div>
+      <div><label>Office / Unit</label><input id="gOffice" value="${safe(x?.office || "")}"></div>
+      <div>
+        <label>Accountability Type</label>
+        <select id="gType">
+          <option ${x?.type==="PAR"?"selected":""}>PAR</option>
+          <option ${x?.type==="ICS"?"selected":""}>ICS</option>
+        </select>
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="gStatus">
+          ${["Issued","Returned","Transferred"].map(v=>`<option ${x?.status===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div class="span-all"><label>Remarks</label><textarea id="gRemarks">${safe(x?.remarks || "")}</textarea></div>
+    </div>
+  `,id);
+}
+window.openIssuance = openIssuance;
+
+async function saveIssuance(){
+  const id = currentGeneric.id;
+  const propertyNo = $("gPropertyNo").value;
+  const p = state.properties.find(x=>x.propertyNo===propertyNo);
+  if(!propertyNo){ showError("Select a property."); return; }
+
+  const data = {
+    date:$("gDate").value,
+    reference:$("gReference").value.trim(),
+    propertyNo,
+    description:p?.description || "",
+    person:$("gPerson").value.trim(),
+    office:$("gOffice").value.trim(),
+    type:$("gType").value,
+    status:$("gStatus").value,
+    remarks:$("gRemarks").value.trim(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  await saveGenericDoc("issuances",id,data,"Accountability",data.reference || propertyNo,false);
+
+  if(p){
+    const update = data.status==="Returned"
+      ? {accountable:"",office:"",parIcs:"",status:"Available"}
+      : {accountable:data.person,office:data.office,parIcs:data.reference,status:data.status==="Transferred"?"Transferred":"Issued"};
+    update.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection("properties").doc(p.id).update(update);
+  }
+}
+
+/* =========================================================
+   TRANSFER
+   ========================================================= */
+$("addTransferBtn").addEventListener("click",()=>openTransfer());
+
+function openTransfer(id=null){
+  const x = id ? state.transfers.find(r=>r.id===id) : null;
+  openGeneric("transfer",id?"Edit Transfer":"Record Property Transfer",`
+    <div class="form-grid">
+      <div><label>Date</label><input id="gDate" type="date" value="${safe(x?.date || today())}"></div>
+      <div><label>PTR Number</label><input id="gReference" value="${safe(x?.reference || "")}"></div>
+      <div><label>Property</label><select id="gPropertyNo">${propertyOptions(x?.propertyNo || "")}</select></div>
+      <div><label>From</label><input id="gFrom" value="${safe(x?.from || "")}"></div>
+      <div><label>To</label><input id="gTo" value="${safe(x?.to || "")}"></div>
+      <div><label>New Office / Unit</label><input id="gOffice" value="${safe(x?.office || "")}"></div>
+      <div><label>New Location</label><input id="gLocation" value="${safe(x?.location || "")}"></div>
+      <div class="span-2"><label>Reason / Remarks</label><textarea id="gReason">${safe(x?.reason || "")}</textarea></div>
+    </div>
+  `,id);
+}
+window.openTransfer = openTransfer;
+
+async function saveTransfer(){
+  const id = currentGeneric.id;
+  const propertyNo = $("gPropertyNo").value;
+  const p = state.properties.find(x=>x.propertyNo===propertyNo);
+  if(!propertyNo){ showError("Select a property."); return; }
+
+  const data = {
+    date:$("gDate").value,
+    reference:$("gReference").value.trim(),
+    propertyNo,
+    description:p?.description || "",
+    from:$("gFrom").value.trim(),
+    to:$("gTo").value.trim(),
+    office:$("gOffice").value.trim(),
+    location:$("gLocation").value.trim(),
+    reason:$("gReason").value.trim(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  await saveGenericDoc("transfers",id,data,"Transfer",data.reference || propertyNo,false);
+
+  if(p){
+    await db.collection("properties").doc(p.id).update({
+      accountable:data.to,
+      office:data.office,
+      location:data.location,
+      status:"Transferred",
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+}
+
+/* =========================================================
+   PHYSICAL INVENTORY
+   ========================================================= */
+$("addPhysicalBtn").addEventListener("click",()=>openPhysical());
+
+function openPhysical(id=null){
+  const x = id ? state.physicalInventory.find(r=>r.id===id) : null;
+  openGeneric("physical",id?"Edit Physical Count":"Record Physical Inventory",`
+    <div class="form-grid">
+      <div><label>Date Counted</label><input id="gDate" type="date" value="${safe(x?.date || today())}"></div>
+      <div><label>Property</label><select id="gPropertyNo">${propertyOptions(x?.propertyNo || "")}</select></div>
+      <div><label>Actual Location</label><input id="gLocation" value="${safe(x?.actualLocation || "")}"></div>
+      <div>
+        <label>Condition</label>
+        <select id="gCondition">
+          ${["Serviceable","Good","Fair","For Repair","Unserviceable"].map(v=>`<option ${x?.condition===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label>Inventory Result</label>
+        <select id="gResult">
+          ${["Verified","Location Discrepancy","Accountability Discrepancy","Missing","Found but Unrecorded"].map(v=>`<option ${x?.result===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div class="span-all"><label>Remarks</label><textarea id="gRemarks">${safe(x?.remarks || "")}</textarea></div>
+    </div>
+  `,id);
+}
+window.openPhysical = openPhysical;
+
+async function savePhysical(){
+  const id = currentGeneric.id;
+  const propertyNo = $("gPropertyNo").value;
+  const p = state.properties.find(x=>x.propertyNo===propertyNo);
+  if(!propertyNo){ showError("Select a property."); return; }
+
+  const data = {
+    date:$("gDate").value,
+    propertyNo,
+    description:p?.description || "",
+    recordedLocation:p?.location || "",
+    actualLocation:$("gLocation").value.trim(),
+    condition:$("gCondition").value,
+    result:$("gResult").value,
+    remarks:$("gRemarks").value.trim(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await saveGenericDoc("physicalInventory",id,data,"Physical Inventory",propertyNo);
+}
+
+/* =========================================================
+   MAINTENANCE
+   ========================================================= */
+$("addMaintenanceBtn").addEventListener("click",()=>openMaintenance());
+
+function openMaintenance(id=null){
+  const x = id ? state.maintenance.find(r=>r.id===id) : null;
+  openGeneric("maintenance",id?"Edit Maintenance Record":"Repair / Maintenance Record",`
+    <div class="form-grid">
+      <div><label>Date</label><input id="gDate" type="date" value="${safe(x?.date || today())}"></div>
+      <div><label>Property</label><select id="gPropertyNo">${propertyOptions(x?.propertyNo || "")}</select></div>
+      <div><label>Problem / Defect</label><input id="gProblem" value="${safe(x?.problem || "")}"></div>
+      <div class="span-2"><label>Action Taken</label><input id="gAction" value="${safe(x?.action || "")}"></div>
+      <div><label>Repair Cost</label><input id="gCost" type="number" min="0" step="0.01" value="${safe(x?.cost ?? "")}"></div>
+      <div>
+        <label>Status</label>
+        <select id="gStatus">
+          ${["For Inspection","For Repair","Under Repair","Completed","Beyond Economical Repair"].map(v=>`<option ${x?.status===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div class="span-all"><label>Remarks</label><textarea id="gRemarks">${safe(x?.remarks || "")}</textarea></div>
+    </div>
+  `,id);
+}
+window.openMaintenance = openMaintenance;
+
+async function saveMaintenance(){
+  const id = currentGeneric.id;
+  const propertyNo = $("gPropertyNo").value;
+  const p = state.properties.find(x=>x.propertyNo===propertyNo);
+  if(!propertyNo){ showError("Select a property."); return; }
+
+  const data = {
+    date:$("gDate").value,
+    propertyNo,
+    description:p?.description || "",
+    problem:$("gProblem").value.trim(),
+    action:$("gAction").value.trim(),
+    cost:Number($("gCost").value || 0),
+    status:$("gStatus").value,
+    remarks:$("gRemarks").value.trim(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await saveGenericDoc("maintenance",id,data,"Maintenance",propertyNo,false);
+
+  if(p){
+    let propertyUpdate = {};
+    if(["For Repair","Under Repair","For Inspection"].includes(data.status)){
+      propertyUpdate = {status:"For Repair",condition:"For Repair"};
+    }else if(data.status==="Completed"){
+      propertyUpdate = {status:p.accountable ? "Issued" : "Available",condition:"Serviceable"};
+    }else if(data.status==="Beyond Economical Repair"){
+      propertyUpdate = {status:"For Disposal",condition:"Unserviceable"};
+    }
+    if(Object.keys(propertyUpdate).length){
+      propertyUpdate.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection("properties").doc(p.id).update(propertyUpdate);
+    }
+  }
+}
+
+/* =========================================================
+   DISPOSAL
+   ========================================================= */
+$("addDisposalBtn").addEventListener("click",()=>openDisposal());
+
+function openDisposal(id=null){
+  const x = id ? state.disposals.find(r=>r.id===id) : null;
+  openGeneric("disposal",id?"Edit Disposal Record":"Disposal Record",`
+    <div class="form-grid">
+      <div><label>Date</label><input id="gDate" type="date" value="${safe(x?.date || today())}"></div>
+      <div><label>IIRUP Number</label><input id="gReference" value="${safe(x?.reference || "")}"></div>
+      <div><label>Property</label><select id="gPropertyNo">${propertyOptions(x?.propertyNo || "")}</select></div>
+      <div>
+        <label>Condition / Basis</label>
+        <select id="gCondition">
+          ${["Unserviceable","Obsolete","Beyond Economical Repair","Surplus","Scrap / Waste"].map(v=>`<option ${x?.condition===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div><label>Appraised Value</label><input id="gAppraisedValue" type="number" min="0" step="0.01" value="${safe(x?.appraisedValue ?? "")}"></div>
+      <div>
+        <label>Disposal Mode</label>
+        <select id="gMode">
+          ${["Pending Determination","Public Auction","Sale","Transfer","Barter","Destruction / Condemnation","Other Authorized Mode"].map(v=>`<option ${x?.mode===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="gStatus">
+          ${["For Inspection","For Appraisal","For Approval","Approved for Disposal","For Auction / Sale","Disposed"].map(v=>`<option ${x?.status===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+      <div class="span-all"><label>Remarks</label><textarea id="gRemarks">${safe(x?.remarks || "")}</textarea></div>
+    </div>
+  `,id);
+}
+window.openDisposal = openDisposal;
+
+async function saveDisposal(){
+  const id = currentGeneric.id;
+  const propertyNo = $("gPropertyNo").value;
+  const p = state.properties.find(x=>x.propertyNo===propertyNo);
+  if(!propertyNo){ showError("Select a property."); return; }
+
+  const data = {
+    date:$("gDate").value,
+    reference:$("gReference").value.trim(),
+    propertyNo,
+    description:p?.description || "",
+    condition:$("gCondition").value,
+    appraisedValue:Number($("gAppraisedValue").value || 0),
+    mode:$("gMode").value,
+    status:$("gStatus").value,
+    remarks:$("gRemarks").value.trim(),
+    updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await saveGenericDoc("disposals",id,data,"Disposal",data.reference || propertyNo,false);
+
+  if(p){
+    await db.collection("properties").doc(p.id).update({
+      condition:"Unserviceable",
+      status:data.status==="Disposed" ? "Disposed" : "For Disposal",
+      updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+}
+
+/* =========================================================
+   SAVE / DELETE GENERIC DOCUMENT
+   ========================================================= */
+$("genericSaveBtn").addEventListener("click",async()=>{
+  $("genericSaveBtn").disabled = true;
+  try{
+    const type = currentGeneric.type;
+    if(type==="acquisition") await saveAcquisition();
+    if(type==="issuance") await saveIssuance();
+    if(type==="transfer") await saveTransfer();
+    if(type==="physical") await savePhysical();
+    if(type==="maintenance") await saveMaintenance();
+    if(type==="disposal") await saveDisposal();
+  }catch(err){
+    showError(err.message);
+  }finally{
+    $("genericSaveBtn").disabled = false;
+  }
+});
+
+async function saveGenericDoc(collection,id,data,module,reference,autoClose=true){
+  if(id){
+    await db.collection(collection).doc(id).update(data);
+    await logAction("Updated record",module,reference);
+  }else{
+    data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    await db.collection(collection).add(data);
+    await logAction("Added record",module,reference);
+  }
+  closeModal("genericModal");
+  toast(id ? "Record updated." : "Record added.");
+}
+
+async function deleteGeneric(collection,id,module){
+  if(!confirm("Delete this record?")) return;
+  try{
+    const list = state[collection] || [];
+    const record = list.find(x=>x.id===id) || {};
+    const reference = record.reference || record.propertyNo || record.description || id;
+    await db.collection(collection).doc(id).delete();
+    await logAction("Deleted record",module,reference);
+    toast("Record deleted.");
+  }catch(err){ showError(err.message); }
+}
+window.deleteGeneric = deleteGeneric;
+
+/* =========================================================
+   RENDERERS
+   ========================================================= */
+function emptyRow(cols,text="No records found."){
+  return `<tr><td class="empty" colspan="${cols}">${text}</td></tr>`;
+}
+
+function renderInventory(){
+  const search = $("inventorySearch").value.trim().toLowerCase();
+  const status = $("inventoryStatusFilter").value;
+  const condition = $("inventoryConditionFilter").value;
+
+  const rows = state.properties.filter(p=>{
+    const hay = [
+      p.propertyNo,p.description,p.classification,p.category,p.brand,p.serial,
+      p.accountable,p.office,p.location,p.parIcs,p.condition,p.status,p.remarks
+    ].join(" ").toLowerCase();
+    return (!search || hay.includes(search))
+      && (!status || p.status===status)
+      && (!condition || p.condition===condition);
+  });
+
+  $("inventoryBody").innerHTML = rows.length ? rows.map(p=>`
+    <tr>
+      <td><strong>${safe(p.propertyNo)}</strong></td>
+      <td>${safe(p.description)}</td>
+      <td>${safe(p.category)}</td>
+      <td>${safe(p.brand)}</td>
+      <td>${safe(p.serial)}</td>
+      <td>${safe(p.dateAcquired)}</td>
+      <td>${money(p.cost)}</td>
+      <td>${safe(p.accountable)}</td>
+      <td>${safe(p.office)}</td>
+      <td>${safe(p.location)}</td>
+      <td>${safe(p.parIcs)}</td>
+      <td><span class="badge ${badgeClass(p.condition)}">${safe(p.condition)}</span></td>
+      <td><span class="badge ${badgeClass(p.status)}">${safe(p.status)}</span></td>
+      <td>${safe(p.remarks)}</td>
+      <td class="no-print">
+        <div class="row-actions">
+          <button class="btn btn-light icon-btn" title="Edit" onclick="openProperty('${p.id}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-danger icon-btn" title="Delete" onclick="deleteProperty('${p.id}')"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </td>
+    </tr>
+  `).join("") : emptyRow(15);
+}
+
+function renderAcquisitions(){
+  $("acquisitionBody").innerHTML = state.acquisitions.length ? state.acquisitions.map(x=>`
+    <tr>
+      <td>${safe(x.date)}</td><td>${safe(x.reference)}</td><td>${safe(x.supplier)}</td><td>${safe(x.mode)}</td>
+      <td>${safe(x.description)}</td><td>${safe(x.quantity)}</td><td>${money(x.amount)}</td>
+      <td><span class="badge ${badgeClass(x.status)}">${safe(x.status)}</span></td><td>${safe(x.remarks)}</td>
+      <td class="no-print"><div class="row-actions">
+        <button class="btn btn-light icon-btn" onclick="openAcquisition('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger icon-btn" onclick="deleteGeneric('acquisitions','${x.id}','Acquisition')"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`).join("") : emptyRow(10);
+}
+
+function renderIssuances(){
+  $("issuanceBody").innerHTML = state.issuances.length ? state.issuances.map(x=>`
+    <tr>
+      <td>${safe(x.date)}</td><td>${safe(x.reference)}</td><td>${safe(x.propertyNo)}</td><td>${safe(x.description)}</td>
+      <td>${safe(x.person)}</td><td>${safe(x.office)}</td><td>${safe(x.type)}</td>
+      <td><span class="badge ${badgeClass(x.status)}">${safe(x.status)}</span></td><td>${safe(x.remarks)}</td>
+      <td class="no-print"><div class="row-actions">
+        <button class="btn btn-light icon-btn" onclick="openIssuance('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger icon-btn" onclick="deleteGeneric('issuances','${x.id}','Accountability')"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`).join("") : emptyRow(10);
+}
+
+function renderTransfers(){
+  $("transferBody").innerHTML = state.transfers.length ? state.transfers.map(x=>`
+    <tr>
+      <td>${safe(x.date)}</td><td>${safe(x.reference)}</td><td>${safe(x.propertyNo)}</td><td>${safe(x.description)}</td>
+      <td>${safe(x.from)}</td><td>${safe(x.to)}</td><td>${safe(x.office)}</td><td>${safe(x.location)}</td><td>${safe(x.reason)}</td>
+      <td class="no-print"><div class="row-actions">
+        <button class="btn btn-light icon-btn" onclick="openTransfer('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger icon-btn" onclick="deleteGeneric('transfers','${x.id}','Transfer')"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`).join("") : emptyRow(10);
+}
+
+function renderPhysical(){
+  $("physicalBody").innerHTML = state.physicalInventory.length ? state.physicalInventory.map(x=>`
+    <tr>
+      <td>${safe(x.date)}</td><td>${safe(x.propertyNo)}</td><td>${safe(x.description)}</td><td>${safe(x.recordedLocation)}</td>
+      <td>${safe(x.actualLocation)}</td><td><span class="badge ${badgeClass(x.condition)}">${safe(x.condition)}</span></td>
+      <td><span class="badge ${badgeClass(x.result)}">${safe(x.result)}</span></td><td>${safe(x.remarks)}</td>
+      <td class="no-print"><div class="row-actions">
+        <button class="btn btn-light icon-btn" onclick="openPhysical('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger icon-btn" onclick="deleteGeneric('physicalInventory','${x.id}','Physical Inventory')"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`).join("") : emptyRow(9);
+}
+
+function renderMaintenance(){
+  $("maintenanceBody").innerHTML = state.maintenance.length ? state.maintenance.map(x=>`
+    <tr>
+      <td>${safe(x.date)}</td><td>${safe(x.propertyNo)}</td><td>${safe(x.description)}</td><td>${safe(x.problem)}</td>
+      <td>${safe(x.action)}</td><td>${money(x.cost)}</td><td><span class="badge ${badgeClass(x.status)}">${safe(x.status)}</span></td><td>${safe(x.remarks)}</td>
+      <td class="no-print"><div class="row-actions">
+        <button class="btn btn-light icon-btn" onclick="openMaintenance('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger icon-btn" onclick="deleteGeneric('maintenance','${x.id}','Maintenance')"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`).join("") : emptyRow(9);
+}
+
+function renderDisposals(){
+  $("disposalBody").innerHTML = state.disposals.length ? state.disposals.map(x=>`
+    <tr>
+      <td>${safe(x.date)}</td><td>${safe(x.reference)}</td><td>${safe(x.propertyNo)}</td><td>${safe(x.description)}</td>
+      <td>${safe(x.condition)}</td><td>${money(x.appraisedValue)}</td><td>${safe(x.mode)}</td>
+      <td><span class="badge ${badgeClass(x.status)}">${safe(x.status)}</span></td><td>${safe(x.remarks)}</td>
+      <td class="no-print"><div class="row-actions">
+        <button class="btn btn-light icon-btn" onclick="openDisposal('${x.id}')"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-danger icon-btn" onclick="deleteGeneric('disposals','${x.id}','Disposal')"><i class="fa-solid fa-trash"></i></button>
+      </div></td>
+    </tr>`).join("") : emptyRow(10);
+}
+
+function renderAudit(){
+  $("auditBody").innerHTML = state.auditLogs.length ? state.auditLogs.map(x=>`
+    <tr><td>${safe(x.eventTime)}</td><td>${safe(x.user)}</td><td>${safe(x.action)}</td><td>${safe(x.module)}</td><td>${safe(x.reference)}</td></tr>
+  `).join("") : emptyRow(5);
+}
+
+function renderDashboard(){
+  $("totalProperty").textContent = state.properties.length;
+  $("totalValue").textContent = money(state.properties.reduce((s,p)=>s+Number(p.cost||0),0));
+  $("issuedCount").textContent = state.properties.filter(p=>["Issued","Transferred"].includes(p.status)).length;
+  $("unserviceableCount").textContent = state.properties.filter(p=>p.condition==="Unserviceable").length;
+
+  $("serviceableCount").textContent = state.properties.filter(p=>
+    ["Serviceable","Good"].includes(p.condition) || p.status==="Available"
+  ).length;
+
+  $("repairCount").textContent = state.properties.filter(p=>
+    p.status==="For Repair" || p.condition==="For Repair"
+  ).length;
+
+  $("forDisposalCount").textContent = state.properties.filter(p=>p.status==="For Disposal").length;
+
+  const pending = state.disposals.filter(d=>d.status!=="Disposed").length;
+  const appraisal = state.disposals.filter(d=>d.status==="For Appraisal").length;
+  const disposed = state.disposals.filter(d=>d.status==="Disposed").length;
+
+  $("pendingDisposalCount").textContent = pending;
+  $("appraisalCount").textContent = appraisal;
+  $("disposedCount").textContent = disposed;
+  $("pendingDisposalCard").textContent = pending;
+  $("appraisalCard").textContent = appraisal;
+  $("disposedCard").textContent = disposed;
+}
+
+function renderAll(){
+  renderInventory();
+  renderAcquisitions();
+  renderIssuances();
+  renderTransfers();
+  renderPhysical();
+  renderMaintenance();
+  renderDisposals();
+  renderAudit();
+  renderDashboard();
+}
+
+/* =========================================================
+   EXCEL EXPORT
+   ========================================================= */
+$("exportInventoryBtn").addEventListener("click",exportInventory);
+
+function exportInventory(){
+  if(!state.properties.length){
+    showError("No inventory data to export.");
+    return;
+  }
+  const data = state.properties.map(p=>({
+    "Property Number":p.propertyNo || "",
+    "Description":p.description || "",
+    "Classification":p.classification || "",
+    "Category":p.category || "",
+    "Brand / Model":p.brand || "",
+    "Serial Number":p.serial || "",
+    "Date Acquired":p.dateAcquired || "",
+    "Acquisition Cost":Number(p.cost || 0),
+    "Supplier / Source":p.supplier || "",
+    "Reference":p.reference || "",
+    "Accountable Person":p.accountable || "",
+    "Office / Unit":p.office || "",
+    "Location":p.location || "",
+    "PAR / ICS Number":p.parIcs || "",
+    "Condition":p.condition || "",
+    "Status":p.status || "",
+    "Remarks":p.remarks || ""
+  }));
+  downloadExcel(data,"Property_Inventory.xlsx","Inventory");
+}
+window.exportInventory = exportInventory;
+
+function exportDataset(key,filename){
+  const data = state[key] || [];
+  if(!data.length){
+    showError("No data to export.");
+    return;
+  }
+
+  const clean = data.map(item=>{
+    const x = {...item};
+    delete x.id;
+    delete x.createdAt;
+    delete x.updatedAt;
+    return x;
+  });
+
+  downloadExcel(clean,`${filename}.xlsx`,filename.slice(0,31));
+}
+window.exportDataset = exportDataset;
+
+function downloadExcel(data,filename,sheetName){
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  XLSX.writeFile(wb,filename);
+}
+
+/* =========================================================
+   INVENTORY EXCEL IMPORT
+   ========================================================= */
+$("importInventoryBtn").addEventListener("click",()=>$("inventoryFile").click());
+$("inventoryFile").addEventListener("change",importInventoryFile);
+
+function normalizeHeader(value){
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[._/-]+/g," ")
+    .replace(/\s+/g," ");
+}
+
+function pick(row,names){
+  const keys = Object.keys(row);
+  for(const name of names){
+    const target = normalizeHeader(name);
+    const key = keys.find(k=>normalizeHeader(k)===target);
+    if(key!==undefined && row[key]!==undefined && row[key]!==null) return row[key];
+  }
+  return "";
+}
+
+function excelDateToISO(value){
+  if(!value) return "";
+  if(value instanceof Date && !isNaN(value)) return value.toISOString().slice(0,10);
+
+  if(typeof value==="number"){
+    const parsed = XLSX.SSF.parse_date_code(value);
+    if(parsed){
+      return `${String(parsed.y).padStart(4,"0")}-${String(parsed.m).padStart(2,"0")}-${String(parsed.d).padStart(2,"0")}`;
+    }
+  }
+
+  const text = String(value).trim();
+  const d = new Date(text);
+  if(!isNaN(d)) return d.toISOString().slice(0,10);
+  return text;
+}
+
+async function importInventoryFile(event){
+  const file = event.target.files[0];
+  event.target.value = "";
+  if(!file) return;
+
+  try{
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer,{type:"array",cellDates:true});
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet,{defval:""});
+
+    if(!rows.length){
+      showError("The selected Excel file has no rows.");
+      return;
+    }
+
+    if(!confirm(`Import ${rows.length} row(s) into Property Inventory? Existing Property Numbers will be updated.`)) return;
+
+    let added=0, updated=0, skipped=0;
+
+    for(const row of rows){
+      const propertyNo = String(pick(row,[
+        "Property Number","Property No","Property No.","Property #","Property Number / ICS No."
+      ])).trim();
+
+      const description = String(pick(row,[
+        "Description","Property Description","Item Description","Item"
+      ])).trim();
+
+      if(!propertyNo || !description){
+        skipped++;
+        continue;
+      }
+
+      const data = {
+        propertyNo,
+        description,
+        classification:String(pick(row,["Classification","Property Classification"]) || "Property, Plant and Equipment (PPE)").trim(),
+        category:String(pick(row,["Category","Property Category"]) || "Office Equipment").trim(),
+        brand:String(pick(row,["Brand / Model","Brand","Model"]) || "").trim(),
+        serial:String(pick(row,["Serial Number","Serial No","Serial No."]) || "").trim(),
+        dateAcquired:excelDateToISO(pick(row,["Date Acquired","Acquisition Date","Date"])),
+        cost:Number(String(pick(row,["Acquisition Cost","Cost","Amount"]) || "0").replace(/,/g,"")) || 0,
+        supplier:String(pick(row,["Supplier / Source","Supplier","Source"]) || "").trim(),
+        reference:String(pick(row,["Reference","PO / Acquisition Reference","PO No.","PO No"]) || "").trim(),
+        accountable:String(pick(row,["Accountable Person","Accountable Officer","Issued To"]) || "").trim(),
+        office:String(pick(row,["Office / Unit","Office","Unit"]) || "").trim(),
+        location:String(pick(row,["Location","Property Location"]) || "").trim(),
+        parIcs:String(pick(row,["PAR / ICS Number","PAR / ICS","PAR No.","ICS No.","PAR/ICS"]) || "").trim(),
+        condition:String(pick(row,["Condition","Property Condition"]) || "Serviceable").trim(),
+        status:String(pick(row,["Status","Property Status"]) || "Available").trim(),
+        remarks:String(pick(row,["Remarks","Remark"]) || "").trim(),
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+      };
+
+      const existing = state.properties.find(p=>String(p.propertyNo).toLowerCase()===propertyNo.toLowerCase());
+      if(existing){
+        await db.collection("properties").doc(existing.id).update(data);
+        updated++;
+      }else{
+        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection("properties").add(data);
+        added++;
+      }
+    }
+
+    await logAction("Imported inventory from Excel","Inventory",file.name);
+    toast(`Import complete: ${added} added, ${updated} updated, ${skipped} skipped.`);
+  }catch(err){
+    console.error(err);
+    showError("Excel import failed: " + err.message);
+  }
+}
+
+/* =========================================================
+   BACKDROP CLOSE
+   ========================================================= */
+qsa(".modal").forEach(modal=>{
+  modal.addEventListener("click",e=>{
+    if(e.target===modal) modal.classList.remove("show");
+  });
+});
+</script>
+
+</body>
+</html>
